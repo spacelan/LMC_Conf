@@ -1,19 +1,16 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include<QMainWindow>
-#include<QTextEdit>
-#include<QLabel>
-#include<QPushButton>
-#include<QComboBox>
-#include<QToolButton>
-#include<QMenuBar>
-#include<QToolBar>
-#include<QDockWidget>
-#include<QFormLayout>
-#include<QGridLayout>
+#include<QtGui>
+#include<QByteArray>
+#include<QList>
+#include<QVector>
+#include<QTimer>
+#include<QMouseEvent>
 
-#include"serial/win_qextserialport.h"
+#include"serial/qextserialport.h"
+#include"Graph/qcustomplot.h"
+
 
 class MainWindow : public QMainWindow
 {
@@ -22,19 +19,30 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     void openMyCom();
     void closeMyCom();
+    void setupRealtimeDataGraph();
 
 private:
-    QLabel *comLabel;
-    QComboBox *comBox;
+    QLabel *comLabel,*baudLabel,*parityLabel,*dataBitsLabel,*stopBitsLabel;
+    QComboBox *comBox,*baudBox,*parityBox,*dataBitsBox,*stopBitsBox;
     QPushButton *openMyComBtn;
-    QWidget *widget;
+    QGroupBox *comGroup;
+    QSlider *throttleSlider;
     QDockWidget *comWidget;
-    QTextEdit *textEdit;
-    Win_QextSerialPort *myCom;
+    QextSerialPort *myCom;
+    QCustomPlot *DataPlot;
+    QTimer dataTimer;
+    double key;
+
+    QList<QByteArray> comData;
+    QByteArray temp;
+    bool OKtoRead;
 
 public slots:
+    void mousePressEvent(QMouseEvent *event);
+    void mouseReleaseEvent(QMouseEvent *event);
     void onMycomBtnClick();
     void readMycom();
+    void realtimeDataSlot();
 };
 
 #endif // MAINWINDOW_H
