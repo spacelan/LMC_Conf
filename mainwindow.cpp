@@ -1,5 +1,4 @@
 #include "mainwindow.h"
-#include<GlobalVariables.h>
 #include<QDebug>
 
 
@@ -9,8 +8,28 @@ MainWindow::MainWindow(QWidget *parent) :
     setWindowTitle(tr("LMC飞控调试软件 V0.1 - by Tzs"));
     DataPlot = new QCustomPlot(this);
     DataPlot->setFocus();
-    setCentralWidget(DataPlot);
+    //setCentralWidget(DataPlot);
     setupRealtimeDataGraph();
+
+    myAttitudeWidget = new AttitudeWidget;
+
+    QVBoxLayout *mainlayout = new QVBoxLayout;
+    mainlayout->addWidget(DataPlot);
+    mainlayout->addWidget(myAttitudeWidget);
+
+    QWidget *mainWidget = new QWidget;
+    mainWidget->setLayout(mainlayout);
+    setCentralWidget(mainWidget);
+
+
+
+
+    lockLabel = new QLabel(tr("已锁定"));
+    statusGroup = new QGroupBox;
+    statusGroup->setTitle(tr("四轴状态"));
+    QVBoxLayout *statusLayout = new QVBoxLayout;
+    statusLayout->addWidget(lockLabel);
+    statusGroup->setLayout(statusLayout);
 
     comLabel = new QLabel(tr("串口"));
     comLabel->setAlignment(Qt::AlignRight|Qt::AlignVCenter);
@@ -61,10 +80,17 @@ MainWindow::MainWindow(QWidget *parent) :
     comGroup->setTitle(tr("端口参数设置"));
     comGroup->setLayout(comLayout);
 
+    QVBoxLayout *leftLayout = new QVBoxLayout;
+    leftLayout->addWidget(statusGroup);
+    leftLayout->addWidget(comGroup);
+
     comWidget = new QDockWidget;
+    QWidget *leftDockWidget = new QWidget;
+    leftDockWidget->setLayout(leftLayout);
+
     //    comWidget->setWindowTitle(tr("端口参数设置"));
     comWidget->setAllowedAreas(Qt::LeftDockWidgetArea|Qt::RightDockWidgetArea);
-    comWidget->setWidget(comGroup);
+    comWidget->setWidget(leftDockWidget);
     comWidget->setMaximumWidth(200);
 
     connect(openMyComBtn,SIGNAL(clicked()),this,SLOT(onMycomBtnClick()));
@@ -157,7 +183,7 @@ void MainWindow::setupRealtimeDataGraph()
     myPen.setColor(Qt::black);
     DataPlot->addGraph(); // 黑色-电机信号变化量Offset
     DataPlot->graph(2)->setPen(myPen);
-    DataPlot->graph(2)->setName(tr("Offset(电机信号变化量)"));
+    DataPlot->graph(2)->setName(tr("Dterm"));
 
     //DataPlot->graph(0)->setChannelFillGraph(DataPlot->graph(1));
 
@@ -209,10 +235,15 @@ void MainWindow::readMycom()
     else if(onebyte=='\n'&&(!temp.isNull()))//到达了结尾，而字节数组不为空时
     {
         comData = temp.split('*');//将数组按*号分割
-        inputAngle = QString(comData.at(0)).toFloat();//分割的第一个就是俯仰角了
-        trueAngle = QString(comData.at(1)).toFloat();
-        Offset = QString(comData.at(2)).toFloat();
-        qDebug()<<"inputAngle:"<<inputAngle<<"  trueAngle:"<<trueAngle<<"   Offset:"<<Offset;//输出
+        rollAngle = QString(comData.at(0)).toFloat()*180/3.14;//分割的第一个就是俯仰角了
+        pitchAngle = QString(comData.at(1)).toFloat()*180/3.14;
+        yawAngle = QString(comData.at(2)).toFloat()*180/3.14;
+        //inLock = QString(comData.at(3)).toInt();
+        if(inLock)
+            lockLabel->setText(tr("已锁定"));
+        else
+            lockLabel->setText(tr("已解锁"));
+        qDebug()<<"Euler.x:"<<inputAngle<<"  Euler.y:"<<trueAngle<<"   Euler.y:"<<Offset;//输出
         myCom->readAll();//读取此时串口剩余全部数据，否则输出的显示会延迟很多
         OKtoRead = false;//标记为数据不可读取
         temp.clear();//清空字节数组

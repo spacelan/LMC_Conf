@@ -10,6 +10,8 @@
 
 #include"serial/qextserialport.h"
 #include"Graph/qcustomplot.h"
+#include"Graph/attitudewidget.h"
+#include"GlobalVariables.h"
 
 
 class MainWindow : public QMainWindow
@@ -26,10 +28,14 @@ private:
     QComboBox *comBox,*baudBox,*parityBox,*dataBitsBox,*stopBitsBox;
     QPushButton *openMyComBtn;
     QGroupBox *comGroup;
-    QSlider *throttleSlider;
+
+    QLabel *lockLabel;
+    QGroupBox *statusGroup;
+
     QDockWidget *comWidget;
     QextSerialPort *myCom;
     QCustomPlot *DataPlot;
+    AttitudeWidget *myAttitudeWidget;
     QTimer dataTimer;
     double key;
 
