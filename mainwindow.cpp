@@ -8,7 +8,6 @@ MainWindow::MainWindow(QWidget *parent) :
     setWindowTitle(tr("LMC飞控调试软件 V0.1 - by Tzs"));
     DataPlot = new QCustomPlot(this);
     DataPlot->setFocus();
-    //setCentralWidget(DataPlot);
     setupRealtimeDataGraph();
 
     myAttitudeWidget = new AttitudeWidget;
@@ -100,9 +99,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     addDockWidget(Qt::LeftDockWidgetArea,comWidget);
 
-    setMinimumSize(1000,600);
+    setMinimumSize(800,500);
 
-    OKtoRead = false;
+    OKtoReadH = false;
 }
 
 //点击鼠标左键进行拖拽时指针形状变成手型
@@ -142,10 +141,13 @@ void MainWindow::openMyCom()
     DataPlot->graph(0)->clearData();
     DataPlot->graph(1)->clearData();
     DataPlot->graph(2)->clearData();
+    DataPlot->graph(3)->clearData();
+    DataPlot->graph(4)->clearData();
+    DataPlot->graph(5)->clearData();
     dataTimer.start(0);
 
     //we set the port properties
-    myCom->setBaudRate(BAUD9600);//modify the port settings on your own
+    myCom->setBaudRate(BAUD38400);//modify the port settings on your own
     myCom->setFlowControl(FLOW_OFF);
     myCom->setParity(PAR_NONE);
     myCom->setDataBits(DATA_8);
@@ -173,35 +175,36 @@ void MainWindow::setupRealtimeDataGraph()
     myPen.setColor(Qt::blue);
     DataPlot->addGraph(); // 蓝线-角度
     DataPlot->graph(0)->setPen(myPen);
-    DataPlot->graph(0)->setName(tr("输入角速度（摇杆信号）"));
+    DataPlot->graph(0)->setName(tr("俯仰角"));
 
     myPen.setColor(Qt::red);
-    DataPlot->addGraph(); // 红线-角速度
+    DataPlot->addGraph(); // 红线-角度
     DataPlot->graph(1)->setPen(myPen);
-    DataPlot->graph(1)->setName(tr("输出角速度"));
+    DataPlot->graph(1)->setName(tr("滚转角"));
 
     myPen.setColor(Qt::black);
-    DataPlot->addGraph(); // 黑色-电机信号变化量Offset
+    DataPlot->addGraph(); // 黑色-遥控信号角度
     DataPlot->graph(2)->setPen(myPen);
-    DataPlot->graph(2)->setName(tr("Dterm"));
+    DataPlot->graph(2)->setName(tr("滚转输入角度"));
+
+    myPen.setColor(Qt::yellow);
+    DataPlot->addGraph(); // 黄色-电机信号滚转Offset
+    DataPlot->graph(3)->setPen(myPen);
+    DataPlot->graph(3)->setName(tr("电机滚转输出"));
+
+    myPen.setStyle(Qt::DotLine);
+
+    myPen.setColor(Qt::gray);
+    DataPlot->addGraph(); // 黄色-电机信号滚转Offset
+    DataPlot->graph(4)->setPen(myPen);
+    DataPlot->graph(4)->setName(tr("滚转PID:P项"));
+
+    myPen.setColor(Qt::green);
+    DataPlot->addGraph(); // 黄色-电机信号滚转Offset
+    DataPlot->graph(5)->setPen(myPen);
+    DataPlot->graph(5)->setName(tr("滚转PID:D项"));
 
     //DataPlot->graph(0)->setChannelFillGraph(DataPlot->graph(1));
-
-    DataPlot->addGraph(); // 蓝色点
-    DataPlot->graph(3)->setPen(QPen(Qt::blue));
-    DataPlot->graph(3)->setLineStyle(QCPGraph::lsNone);
-    DataPlot->graph(3)->setScatterStyle(QCP::ssDisc);
-    DataPlot->graph(3)->removeFromLegend();
-    DataPlot->addGraph(); // 红色点
-    DataPlot->graph(4)->setPen(QPen(Qt::red));
-    DataPlot->graph(4)->setLineStyle(QCPGraph::lsNone);
-    DataPlot->graph(4)->setScatterStyle(QCP::ssDisc);
-    DataPlot->graph(4)->removeFromLegend();
-    DataPlot->addGraph(); // 红色点
-    DataPlot->graph(5)->setPen(QPen(Qt::black));
-    DataPlot->graph(5)->setLineStyle(QCPGraph::lsNone);
-    DataPlot->graph(5)->setScatterStyle(QCP::ssDisc);
-    DataPlot->graph(5)->removeFromLegend();
 
     DataPlot->yAxis->setRange(-100,100);
     DataPlot->xAxis->setTickLabelType(QCPAxis::ltDateTime);
@@ -229,23 +232,44 @@ void MainWindow::readMycom()
     char onebyte;
     myCom->read(&onebyte,1);    //读取一字节数据
     if(onebyte=='H')                       //读到开始的标记
-        OKtoRead = true;                //表示后面可以读取数据
-    else if((onebyte!='\n')&&OKtoRead)//如果不是数据结尾，将其插入到一个QByteArray字节数组
+        OKtoReadH = true;                //表示后面可以读取数据
+//    else if(onebyte=='M')//如果不是数据结尾，将其插入到一个QByteArray字节数组
+//        OKtoReadM = true;
+    else if((onebyte!='\n')&&OKtoReadH)//如果不是数据结尾，将其插入到一个QByteArray字节数组
         temp.append(onebyte);
+//    else if((onebyte!='\n')&&OKtoReadM)//如果不是数据结尾，将其插入到一个QByteArray字节数组
+//        temp.append(onebyte);
     else if(onebyte=='\n'&&(!temp.isNull()))//到达了结尾，而字节数组不为空时
     {
         comData = temp.split('*');//将数组按*号分割
-        rollAngle = QString(comData.at(0)).toFloat()*180/3.14;//分割的第一个就是俯仰角了
-        pitchAngle = QString(comData.at(1)).toFloat()*180/3.14;
-        yawAngle = QString(comData.at(2)).toFloat()*180/3.14;
-        //inLock = QString(comData.at(3)).toInt();
-        if(inLock)
-            lockLabel->setText(tr("已锁定"));
-        else
-            lockLabel->setText(tr("已解锁"));
-        qDebug()<<"Euler.x:"<<inputAngle<<"  Euler.y:"<<trueAngle<<"   Euler.y:"<<Offset;//输出
+        if(OKtoReadH)
+        {
+            //yawAngle = -QString(comData.at(0)).toFloat();
+            //pitchAngle = -QString(comData.at(0)).toFloat();
+            rollAngle = QString(comData.at(0)).toFloat();
+            rollInput = QString(comData.at(1)).toFloat();
+            rollOffset = QString(comData.at(2)).toFloat();
+//            rollPID_P = QString(comData.at(3)).toFloat();
+            rollPID_D = QString(comData.at(3)).toFloat();
+
+            OKtoReadH = false;//标记为数据不可读取
+
+            //inLock = QString(comData.at(3)).toInt();
+            if(inLock)
+                lockLabel->setText(tr("已锁定"));
+            else
+                lockLabel->setText(tr("已解锁"));
+            qDebug()<<"yawAngle:"<<yawAngle<<"  pitchAngle:"<<pitchAngle<<"   rollAngle:"<<rollAngle;//输出
+        }
+//        else if(OKtoReadM)
+//        {
+//            rollInput = QString(comData.at(0)).toFloat();
+//            rollOffset = QString(comData.at(1)).toFloat();
+//            rollPID_P = QString(comData.at(2)).toFloat();
+//            rollPID_D = QString(comData.at(3)).toFloat();
+//            OKtoReadM = false;//标记为数据不可读取
+//        }
         myCom->readAll();//读取此时串口剩余全部数据，否则输出的显示会延迟很多
-        OKtoRead = false;//标记为数据不可读取
         temp.clear();//清空字节数组
     }
 }
@@ -256,19 +280,15 @@ void MainWindow::realtimeDataSlot()
     static double lastPointKey = 0;
     if (key-lastPointKey > 0.01) // at most add point every 10 ms
     {
-      // 加入数据点到曲线中:
-      DataPlot->graph(0)->addData(key, inputAngle);
-      DataPlot->graph(1)->addData(key, trueAngle);
-      DataPlot->graph(2)->addData(key,Offset);
+        // 加入数据点到曲线中:
+        DataPlot->graph(0)->addData(key, -pitchAngle);
+        DataPlot->graph(1)->addData(key, rollAngle);
+        DataPlot->graph(2)->addData(key,rollInput);
+        DataPlot->graph(3)->addData(key,rollOffset);
+        DataPlot->graph(4)->addData(key,rollPID_P);
+        DataPlot->graph(5)->addData(key,rollPID_D);
 
-      // 点的绘制:
-      DataPlot->graph(3)->clearData();
-      DataPlot->graph(3)->addData(key, inputAngle);
-      DataPlot->graph(4)->clearData();
-      DataPlot->graph(4)->addData(key, trueAngle);
-      DataPlot->graph(5)->clearData();
-      DataPlot->graph(5)->addData(key, Offset);
-      lastPointKey = key;
+        lastPointKey = key;
     }
     // make key axis range scroll with the data (at a constant range size of 8):
     DataPlot->xAxis->setRange(key+0.25, 40, Qt::AlignRight);

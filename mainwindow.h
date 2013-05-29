@@ -41,7 +41,7 @@ private:
 
     QList<QByteArray> comData;
     QByteArray temp;
-    bool OKtoRead;
+    bool OKtoReadH,OKtoReadM;
 
 public slots:
     void mousePressEvent(QMouseEvent *event);

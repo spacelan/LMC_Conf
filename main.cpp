@@ -10,7 +10,8 @@ int main(int argc,char* argv[])
     QTextCodec::setCodecForTr(QTextCodec::codecForName("UTF-8"));
 
     MainWindow w;
-    w.show();
+    //w.show();
+    w.showMaximized();
 
     return app.exec();
 }

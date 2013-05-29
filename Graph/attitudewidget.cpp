@@ -34,7 +34,7 @@ void AttitudeWidget::paintGL()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    gluLookAt(0,50,50,0,0,0,0,1,0);
+    gluLookAt(0,0,50,0,0,0,0,1,0);
 
 
     glPushMatrix();
@@ -42,16 +42,9 @@ void AttitudeWidget::paintGL()
     glRotatef(90,0,1,0);
     glRotatef(90,-1,0,0);
 
-    glRotatef(yawAngle,0,0,1);
+    //glRotatef(yawAngle,0,0,1);
     glRotatef(pitchAngle,0,1,0);
     glRotatef(rollAngle,1,0,0);
-
-//    xxx++;
-//    if(xxx==2)
-//    {
-//        xxx=0;
-//        yawAngle++;
-//    }
 
     glColor3f(1,0,0);
     drawHalfMulticopter();
